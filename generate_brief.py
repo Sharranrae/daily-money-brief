@@ -95,7 +95,7 @@ def send_email(today, brief):
         return
 
     payload = json.dumps({
-        "from": "Daily Brief <onboarding@resend.dev>",
+        "from": "Daily Brief <brief@budgetcaddie.com>",
         "to": ["sharrank@budgetcaddie.com"],
         "subject": f"Your Daily Money Brief — {today}",
         "text": brief
