@@ -38,15 +38,35 @@ These can be ANYTHING related to money:
 
 For each story, give me:
 
-1. HEADLINE — one punchy line (TikTok hook)
-2. WHAT HAPPENED — 2-3 sentences. Explain it like you're telling a 6th grader. No jargon. Simple words.
-3. WHY YOU SHOULD CARE — 1-2 sentences connecting it to a young person's wallet. Make it feel personal.
-4. TIKTOK ANGLE — The opening line I'd say to camera and the vibe (funny, shocking, educational, rant, storytime).
+1. SOURCE LINK — The actual URL of the article you found this from. I need the real link so I can green screen it on TikTok.
+2. HEADLINE — one punchy line (TikTok hook)
+3. WHAT HAPPENED — 2-3 sentences. Explain it like you're telling a 6th grader. No jargon. Simple words.
+4. WHY GEN Z SHOULD CARE — 1-2 sentences connecting it to a young person's wallet. Make it feel personal.
+5. TIKTOK SCRIPT — The exact opening line I'd say to camera (2-3 sentences max). Make it sound natural, not scripted. Include the vibe in brackets: [funny] [shocking] [educational] [rant] [storytime]
+6. LINKEDIN POST — Write a short LinkedIn post version of this story (3-5 sentences). Professional but relatable. Something a young finance creator would post. Use the brand voice "Today in Gen Z Finance". Start each post with "Today in Gen Z Finance:" and end with a question to drive engagement.
 
-Format it clean. Number each story 1-5.
+Format the email like this:
 
-End with:
-BONUS: One "did you know?" money fact I can use as a quick 15-second TikTok."""
+Subject line style: "Today in Gen Z Finance — {today}"
+
+===========================
+STORY 1
+===========================
+SOURCE: [full article URL]
+HEADLINE: ...
+WHAT HAPPENED: ...
+WHY GEN Z SHOULD CARE: ...
+TIKTOK SCRIPT: ...
+LINKEDIN POST: ...
+
+(repeat for all 5)
+
+===========================
+BONUS
+===========================
+One "did you know?" money fact I can use as a quick 15-second TikTok. Include the source link.
+
+IMPORTANT: Every story MUST have a real, working source URL. I need to pull up the article on screen."""
 
     # Use Claude with web search enabled
     response = client.messages.create(
@@ -72,7 +92,7 @@ BONUS: One "did you know?" money fact I can use as a quick 15-second TikTok."""
 
 def post_issue(today, brief):
     """Post the brief as a GitHub Issue using gh CLI."""
-    title = f"Daily Money Brief — {today}"
+    title = f"Today in Gen Z Finance — {today}"
 
     # Write body to temp file to avoid shell escaping issues
     with open("/tmp/brief_body.md", "w") as f:
@@ -99,9 +119,9 @@ def send_email(today, brief):
 
     try:
         r = resend.Emails.send({
-            "from": "Daily Brief <brief@budgetcaddie.com>",
+            "from": "Today in Gen Z Finance <brief@budgetcaddie.com>",
             "to": ["sharrank@budgetcaddie.com"],
-            "subject": f"Your Daily Money Brief — {today}",
+            "subject": f"Today in Gen Z Finance — {today}",
             "text": brief
         })
         print(f"Email sent! ID: {r}")
