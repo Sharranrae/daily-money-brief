@@ -8,7 +8,14 @@ on:
 jobs:
   generate-brief:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
     steps:
+      - name: Get today's date
+        id: date
+        run: echo "today=$(TZ='America/New_York' date '+%B %d, %Y')" >> $GITHUB_OUTPUT
+
       - name: Generate brief with Claude
         id: brief
         uses: anthropics/claude-code-action@v1
@@ -40,23 +47,23 @@ jobs:
             1. HEADLINE — one punchy line (TikTok hook)
             2. WHAT HAPPENED — 2-3 sentences. Explain it like you're telling a 6th grader. No jargon. Simple words.
             3. WHY YOU SHOULD CARE — 1-2 sentences connecting it to a young person's wallet. Make it feel personal.
-            4. TIKTOK ANGLE — How to present this on TikTok. Give me the opening line I'd say to camera and the vibe (funny, shocking, educational, rant, storytime).
+            4. TIKTOK ANGLE — The opening line I'd say to camera and the vibe (funny, shocking, educational, rant, storytime).
 
             Format it clean. Number each story 1-5.
 
             End with:
             BONUS: One "did you know?" money fact I can use as a quick 15-second TikTok.
 
-      - name: Send email
-        uses: dawidd6/action-send-mail@v3
+      - name: Post as GitHub Issue
+        uses: actions/github-script@v7
         with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.GMAIL_USERNAME }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "Your Daily Money Brief - ${{ github.event.schedule && 'Scheduled' || 'Manual' }}"
-          to: sharrank@budgetcaddie.com
-          from: ${{ secrets.GMAIL_USERNAME }}
-          body: ${{ steps.brief.outputs.result }}
-          content_type: text/plain
+          script: |
+            const today = '${{ steps.date.outputs.today }}';
+            const body = `${{ steps.brief.outputs.result }}`.replace(/`/g, "'");
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Daily Money Brief — ${today}`,
+              body: body,
+              labels: ['daily-brief']
+            });
