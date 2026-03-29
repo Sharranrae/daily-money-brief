@@ -24,6 +24,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: "true"
           prompt: |
             You are a Gen Z financial news researcher for a TikTok creator.
 
@@ -57,12 +58,27 @@ jobs:
             End with:
             BONUS: One "did you know?" money fact I can use as a quick 15-second TikTok.
 
+      - name: Read Claude output
+        id: read
+        run: |
+          if [ -f /home/runner/work/_temp/claude-execution-output.json ]; then
+            BODY=$(cat /home/runner/work/_temp/claude-execution-output.json | jq -r '.result // .text // .content // tostring' 2>/dev/null || cat /home/runner/work/_temp/claude-execution-output.json)
+          else
+            BODY="${{ steps.brief.outputs.result }}"
+          fi
+          if [ -z "$BODY" ] || [ "$BODY" = "null" ]; then
+            BODY="Brief generation returned empty. Check the workflow logs."
+          fi
+          echo "BRIEF_BODY<<HEREDOC_EOF" >> $GITHUB_ENV
+          echo "$BODY" >> $GITHUB_ENV
+          echo "HEREDOC_EOF" >> $GITHUB_ENV
+
       - name: Post as GitHub Issue
         uses: actions/github-script@v7
         with:
           script: |
             const today = '${{ steps.date.outputs.today }}';
-            const body = process.env.BRIEF_RESULT || 'Brief generation failed.';
+            const body = process.env.BRIEF_BODY || 'Brief generation failed.';
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -70,5 +86,3 @@ jobs:
               body: body,
               labels: ['daily-brief']
             });
-        env:
-          BRIEF_RESULT: ${{ steps.brief.outputs.result }}
