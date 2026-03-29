@@ -1,0 +1,62 @@
+name: Daily Gen Z Money Brief
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # 9 AM EST (UTC-4 during EDT)
+  workflow_dispatch: {}     # Manual trigger for testing
+
+jobs:
+  generate-brief:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate brief with Claude
+        id: brief
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            You are a Gen Z financial news researcher for a TikTok creator.
+
+            Find today's top 5 money/finance news stories that impact young people (ages 18-28).
+
+            These can be ANYTHING related to money:
+            - Gas prices going up or down
+            - Netflix, Spotify, or any subscription raising prices
+            - Grocery/food costs changing
+            - A stock blowing up that Gen Z cares about (Tesla, Nvidia, meme stocks)
+            - Student loan news
+            - Housing/rent changes
+            - Job market shifts (layoffs, hiring booms)
+            - Crypto moves
+            - New financial products or apps
+            - Government policy affecting young people
+            - Inflation, interest rates
+            - Viral money stories on social media
+            - Side hustle trends
+            - BNPL or credit card news
+
+            For each story, give me:
+
+            1. HEADLINE — one punchy line (TikTok hook)
+            2. WHAT HAPPENED — 2-3 sentences. Explain it like you're telling a 6th grader. No jargon. Simple words.
+            3. WHY YOU SHOULD CARE — 1-2 sentences connecting it to a young person's wallet. Make it feel personal.
+            4. TIKTOK ANGLE — How to present this on TikTok. Give me the opening line I'd say to camera and the vibe (funny, shocking, educational, rant, storytime).
+
+            Format it clean. Number each story 1-5.
+
+            End with:
+            BONUS: One "did you know?" money fact I can use as a quick 15-second TikTok.
+
+      - name: Send email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "Your Daily Money Brief - ${{ github.event.schedule && 'Scheduled' || 'Manual' }}"
+          to: sharrank@budgetcaddie.com
+          from: ${{ secrets.GMAIL_USERNAME }}
+          body: ${{ steps.brief.outputs.result }}
+          content_type: text/plain
