@@ -88,36 +88,23 @@ def post_issue(today, brief):
 
 
 def send_email(today, brief):
-    """Send the brief via Resend API."""
+    """Send the brief via Resend SDK."""
     resend_key = os.environ.get("RESEND_API_KEY")
     if not resend_key:
         print("No RESEND_API_KEY set, skipping email.")
         return
 
-    payload = json.dumps({
-        "from": "Daily Brief <brief@budgetcaddie.com>",
-        "to": ["sharrank@budgetcaddie.com"],
-        "subject": f"Your Daily Money Brief — {today}",
-        "text": brief
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        "https://api.resend.com/emails",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {resend_key}",
-            "Content-Type": "application/json"
-        },
-        method="POST"
-    )
+    import resend
+    resend.api_key = resend_key
 
     try:
-        with urllib.request.urlopen(req) as resp:
-            print(f"Email sent! Status: {resp.status}")
-            print(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        print(f"Email failed: {e.code} {e.reason}")
-        print(f"Response body: {e.read().decode()}")
+        r = resend.Emails.send({
+            "from": "Daily Brief <brief@budgetcaddie.com>",
+            "to": ["sharrank@budgetcaddie.com"],
+            "subject": f"Your Daily Money Brief — {today}",
+            "text": brief
+        })
+        print(f"Email sent! ID: {r}")
     except Exception as e:
         print(f"Email failed: {e}")
 
