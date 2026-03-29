@@ -51,7 +51,7 @@ BONUS: One "did you know?" money fact I can use as a quick 15-second TikTok."""
     response = client.messages.create(
         model="claude-sonnet-4-6-20250514",
         max_tokens=4000,
-        tools=[{"type": "web_search_20250305"}],
+        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}],
         messages=[{"role": "user", "content": prompt}]
     )
 
