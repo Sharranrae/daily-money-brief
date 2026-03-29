@@ -11,7 +11,10 @@ jobs:
     permissions:
       issues: write
       contents: read
+      id-token: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Get today's date
         id: date
         run: echo "today=$(TZ='America/New_York' date '+%B %d, %Y')" >> $GITHUB_OUTPUT
@@ -21,7 +24,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          direct_prompt: |
+          prompt: |
             You are a Gen Z financial news researcher for a TikTok creator.
 
             Find today's top 5 money/finance news stories that impact young people (ages 18-28).
@@ -59,7 +62,7 @@ jobs:
         with:
           script: |
             const today = '${{ steps.date.outputs.today }}';
-            const body = `${{ steps.brief.outputs.result }}`.replace(/`/g, "'");
+            const body = process.env.BRIEF_RESULT || 'Brief generation failed.';
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -67,3 +70,5 @@ jobs:
               body: body,
               labels: ['daily-brief']
             });
+        env:
+          BRIEF_RESULT: ${{ steps.brief.outputs.result }}
