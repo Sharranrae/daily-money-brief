@@ -114,6 +114,10 @@ def send_email(today, brief):
     try:
         with urllib.request.urlopen(req) as resp:
             print(f"Email sent! Status: {resp.status}")
+            print(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        print(f"Email failed: {e.code} {e.reason}")
+        print(f"Response body: {e.read().decode()}")
     except Exception as e:
         print(f"Email failed: {e}")
 
