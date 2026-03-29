@@ -10,79 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get today's date
-        id: date
-        run: echo "today=$(TZ='America/New_York' date '+%B %d, %Y')" >> $GITHUB_OUTPUT
-
-      - name: Generate brief with Claude
-        id: brief
-        uses: anthropics/claude-code-action@v1
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          show_full_output: "true"
-          prompt: |
-            You are a Gen Z financial news researcher for a TikTok creator.
+          python-version: '3.12'
 
-            Find today's top 5 money/finance news stories that impact young people (ages 18-28).
+      - name: Install dependencies
+        run: pip install anthropic
 
-            These can be ANYTHING related to money:
-            - Gas prices going up or down
-            - Netflix, Spotify, or any subscription raising prices
-            - Grocery/food costs changing
-            - A stock blowing up that Gen Z cares about (Tesla, Nvidia, meme stocks)
-            - Student loan news
-            - Housing/rent changes
-            - Job market shifts (layoffs, hiring booms)
-            - Crypto moves
-            - New financial products or apps
-            - Government policy affecting young people
-            - Inflation, interest rates
-            - Viral money stories on social media
-            - Side hustle trends
-            - BNPL or credit card news
-
-            For each story, give me:
-
-            1. HEADLINE — one punchy line (TikTok hook)
-            2. WHAT HAPPENED — 2-3 sentences. Explain it like you're telling a 6th grader. No jargon. Simple words.
-            3. WHY YOU SHOULD CARE — 1-2 sentences connecting it to a young person's wallet. Make it feel personal.
-            4. TIKTOK ANGLE — The opening line I'd say to camera and the vibe (funny, shocking, educational, rant, storytime).
-
-            Format it clean. Number each story 1-5.
-
-            End with:
-            BONUS: One "did you know?" money fact I can use as a quick 15-second TikTok.
-
-      - name: Read Claude output
-        id: read
-        run: |
-          if [ -f /home/runner/work/_temp/claude-execution-output.json ]; then
-            BODY=$(cat /home/runner/work/_temp/claude-execution-output.json | jq -r '.result // .text // .content // tostring' 2>/dev/null || cat /home/runner/work/_temp/claude-execution-output.json)
-          else
-            BODY="${{ steps.brief.outputs.result }}"
-          fi
-          if [ -z "$BODY" ] || [ "$BODY" = "null" ]; then
-            BODY="Brief generation returned empty. Check the workflow logs."
-          fi
-          echo "BRIEF_BODY<<HEREDOC_EOF" >> $GITHUB_ENV
-          echo "$BODY" >> $GITHUB_ENV
-          echo "HEREDOC_EOF" >> $GITHUB_ENV
-
-      - name: Post as GitHub Issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const today = '${{ steps.date.outputs.today }}';
-            const body = process.env.BRIEF_BODY || 'Brief generation failed.';
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Daily Money Brief — ${today}`,
-              body: body,
-              labels: ['daily-brief']
-            });
+      - name: Generate brief and post issue
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: python generate_brief.py
