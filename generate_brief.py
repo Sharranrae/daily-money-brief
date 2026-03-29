@@ -1,12 +1,13 @@
 """
 Daily Gen Z Money Brief Generator
 Uses Claude API with web search to find today's top finance stories.
-Posts the result as a GitHub Issue.
+Posts as a GitHub Issue + emails to sharrank@budgetcaddie.com.
 """
 
 import os
 import json
 import subprocess
+import urllib.request
 from datetime import datetime, timezone, timedelta
 import anthropic
 
@@ -86,6 +87,37 @@ def post_issue(today, brief):
     ], check=True)
 
 
+def send_email(today, brief):
+    """Send the brief via Resend API."""
+    resend_key = os.environ.get("RESEND_API_KEY")
+    if not resend_key:
+        print("No RESEND_API_KEY set, skipping email.")
+        return
+
+    payload = json.dumps({
+        "from": "Daily Brief <onboarding@resend.dev>",
+        "to": ["sharrank@budgetcaddie.com"],
+        "subject": f"Your Daily Money Brief — {today}",
+        "text": brief
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {resend_key}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            print(f"Email sent! Status: {resp.status}")
+    except Exception as e:
+        print(f"Email failed: {e}")
+
+
 if __name__ == "__main__":
     # Create label if it doesn't exist
     try:
@@ -103,3 +135,5 @@ if __name__ == "__main__":
     print(brief[:500] + "...")
     post_issue(today, brief)
     print("Posted as GitHub Issue!")
+    send_email(today, brief)
+    print("Done!")
