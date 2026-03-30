@@ -11,13 +11,47 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 import anthropic
 
+def get_recent_headlines():
+    """Pull headlines from the last 7 days of issues to avoid repeats."""
+    try:
+        result = subprocess.run(
+            ["gh", "issue", "list",
+             "--repo", os.environ.get("GITHUB_REPOSITORY", "Sharranrae/daily-money-brief"),
+             "--label", "daily-brief",
+             "--limit", "7",
+             "--json", "body",
+             "--jq", ".[].body"],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.stdout.strip():
+            # Extract headlines from past briefs
+            lines = result.stdout.strip().split("\n")
+            headlines = [l.strip() for l in lines if l.strip().startswith("HEADLINE:")]
+            return headlines[:35]  # max 35 recent headlines (7 days × 5)
+    except Exception:
+        pass
+    return []
+
+
 def generate_brief():
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     est = timezone(timedelta(hours=-4))
     today = datetime.now(est).strftime("%B %d, %Y")
 
-    prompt = f"""Today is {today}. Find the top 5 money and finance news stories from today or this week that impact young people (ages 18-28).
+    # Get recent headlines to avoid repeats
+    recent = get_recent_headlines()
+    avoid_block = ""
+    if recent:
+        avoid_list = "\n".join(f"- {h}" for h in recent)
+        avoid_block = f"""
+
+IMPORTANT — DO NOT REPEAT THESE STORIES. I already covered them this week:
+{avoid_list}
+
+Find completely DIFFERENT stories. New angles, new topics, new sources."""
+
+    prompt = f"""Today is {today}. Find the top 5 money and finance news stories from today or this week that impact young people (ages 18-28).{avoid_block}
 
 These can be ANYTHING related to money:
 - Gas prices going up or down
