@@ -11,8 +11,8 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 import anthropic
 
-def get_recent_headlines():
-    """Pull headlines from the last 7 days of issues to avoid repeats."""
+def get_recent_stories():
+    """Pull headlines, topics, and sources from the last 7 days to avoid repeats."""
     try:
         result = subprocess.run(
             ["gh", "issue", "list",
@@ -25,12 +25,17 @@ def get_recent_headlines():
         )
         if result.stdout.strip():
             lines = result.stdout.strip().split("\n")
-            headlines = []
+            stories = []
             for l in lines:
                 cleaned = l.strip().replace("**", "").replace("*", "")
                 if cleaned.startswith("HEADLINE:"):
-                    headlines.append(cleaned)
-            return headlines[:35]
+                    stories.append(cleaned)
+                elif cleaned.startswith("SOURCE:"):
+                    stories.append(cleaned)
+                elif cleaned.startswith("WHAT HAPPENED:"):
+                    # Grab first sentence as topic summary
+                    stories.append(cleaned[:200])
+            return stories[:100]
     except Exception:
         pass
     return []
@@ -42,17 +47,25 @@ def generate_brief():
     est = timezone(timedelta(hours=-4))
     today = datetime.now(est).strftime("%B %d, %Y")
 
-    # Get recent headlines to avoid repeats
-    recent = get_recent_headlines()
+    # Get recent stories to avoid repeats
+    recent = get_recent_stories()
     avoid_block = ""
     if recent:
         avoid_list = "\n".join(f"- {h}" for h in recent)
         avoid_block = f"""
 
-IMPORTANT — DO NOT REPEAT THESE STORIES. I already covered them this week:
+CRITICAL — DO NOT REPEAT ANY OF THESE TOPICS. I already covered them this week. This means:
+- NO stories about gas prices or fuel costs
+- NO stories about the SAVE student loan plan
+- NO stories about entry-level job market struggles
+- NO stories about Gen Z wealth surveys
+- NO stories about Bitcoin/crypto price drops
+- NO stories from any of the same sources/URLs listed below
+
+Here are the exact headlines, sources, and summaries from my past briefs:
 {avoid_list}
 
-Find completely DIFFERENT stories. New angles, new topics, new sources."""
+I need 5 COMPLETELY DIFFERENT TOPICS. Not the same story from a different outlet. Not a different angle on the same topic. Entirely new subjects I haven't covered."""
 
     prompt = f"""Today is {today}. Find the top 5 money and finance news stories from today or this week that impact young people (ages 18-28).{avoid_block}
 
