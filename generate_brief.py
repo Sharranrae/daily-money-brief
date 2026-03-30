@@ -24,10 +24,13 @@ def get_recent_headlines():
             capture_output=True, text=True, timeout=15
         )
         if result.stdout.strip():
-            # Extract headlines from past briefs
             lines = result.stdout.strip().split("\n")
-            headlines = [l.strip() for l in lines if l.strip().startswith("HEADLINE:")]
-            return headlines[:35]  # max 35 recent headlines (7 days × 5)
+            headlines = []
+            for l in lines:
+                cleaned = l.strip().replace("**", "").replace("*", "")
+                if cleaned.startswith("HEADLINE:"):
+                    headlines.append(cleaned)
+            return headlines[:35]
     except Exception:
         pass
     return []
