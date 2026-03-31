@@ -8,6 +8,7 @@ import os
 import json
 import subprocess
 import urllib.request
+import time
 from datetime import datetime, timezone, timedelta
 import anthropic
 
@@ -118,13 +119,23 @@ One "did you know?" money fact I can use as a quick 15-second TikTok. Include th
 
 IMPORTANT: Every story MUST have a real, working source URL. I need to pull up the article on screen."""
 
-    # Use Claude with web search enabled
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4000,
-        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}],
-        messages=[{"role": "user", "content": prompt}]
-    )
+    # Use Claude with web search enabled (retry on overloaded errors)
+    response = None
+    for attempt in range(5):
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4000,
+                tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}],
+                messages=[{"role": "user", "content": prompt}]
+            )
+            break
+        except anthropic.OverloadedError:
+            wait = 30 * (attempt + 1)
+            print(f"API overloaded (attempt {attempt + 1}/5). Retrying in {wait}s...")
+            time.sleep(wait)
+    if response is None:
+        raise Exception("Claude API overloaded after 5 retries. Try again later.")
 
     # Extract text from response (may have multiple content blocks from tool use)
     text_parts = []
