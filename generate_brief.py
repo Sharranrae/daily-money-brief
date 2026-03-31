@@ -130,7 +130,9 @@ IMPORTANT: Every story MUST have a real, working source URL. I need to pull up t
                 messages=[{"role": "user", "content": prompt}]
             )
             break
-        except anthropic.OverloadedError:
+        except anthropic.APIStatusError as e:
+            if e.status_code != 529:
+                raise
             wait = 30 * (attempt + 1)
             print(f"API overloaded (attempt {attempt + 1}/5). Retrying in {wait}s...")
             time.sleep(wait)
