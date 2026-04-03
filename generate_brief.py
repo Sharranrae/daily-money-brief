@@ -278,4 +278,11 @@ if __name__ == "__main__":
     linkedin_post = generate_linkedin_post(today, brief)
     print(f"LinkedIn post:\n{linkedin_post[:300]}...")
     send_linkedin_email(today, linkedin_post)
+
+    # Generate and send Substack draft (Haiku — cheap)
+    print("Generating Substack draft...")
+    from generate_substack import generate_substack_post, send_email as send_substack_email
+    sub_date, newsletter = generate_substack_post(brief)
+    print(f"Substack draft:\n{newsletter[:300]}...")
+    send_substack_email(sub_date, newsletter)
     print("Done!")
