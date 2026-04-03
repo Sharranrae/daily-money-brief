@@ -170,11 +170,13 @@ RULES:
 - After the 5 stories, end with exactly these two lines:
 
 Follow my Substack to stay up to date → [link]
-Download Budget Caddie on the App Store — proactive AI that budgets, tracks, and coaches you before you overspend
+Download Budget Caddie on the App Store. Proactive AI that budgets, tracks, and coaches you before you overspend.
 
 - No emojis anywhere in the post. Zero. Not in the headline, not in the stories, not in the CTAs.
 - No hashtags
 - No other closing lines
+- NEVER use em dashes or en dashes (the long dash character). Use periods, commas, or just start a new sentence instead. Dashes are an AI giveaway.
+- NEVER use fancy or uncommon words. No "jargon", "leverage", "nuanced", "landscape", "paradigm", "delve", "myriad", "robust", "tapestry", "realm", "foster", "utilize", "facilitate", "comprehensive", "moreover", "furthermore". Write like a normal 24 year old would talk.
 - Output ONLY the LinkedIn post. Nothing else. No "here's the post" or any preamble.
 
 THE BRIEF:
