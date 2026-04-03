@@ -167,9 +167,10 @@ RULES:
 - Each story gets 2-3 sentences MAX: what happened with real numbers, then why it matters to the reader personally. Make them feel it.
 - Every fact and number must come directly from the brief below. Do NOT make up or change any statistics.
 - Blank line between each numbered story
-- After the 5 stories, end with exactly these two lines:
+- After the 5 stories, end with exactly these three lines:
 
-Follow my Substack to stay up to date → [link]
+Follow me for daily breakdowns like this.
+I break these down daily on my Substack. Link in the comments.
 Download Budget Caddie on the App Store. Proactive AI that budgets, tracks, and coaches you before you overspend.
 
 - No emojis anywhere in the post. Zero. Not in the headline, not in the stories, not in the CTAs.
