@@ -2,6 +2,7 @@
 Daily Gen Z Money Brief Generator
 Uses Claude API with web search to find today's top finance stories.
 Posts as a GitHub Issue + emails to sharrank@budgetcaddie.com.
+Second email: LinkedIn-ready post generated via Haiku (cheap).
 """
 
 import os
@@ -11,6 +12,7 @@ import urllib.request
 import time
 from datetime import datetime, timezone, timedelta
 import anthropic
+
 
 def get_recent_stories():
     """Pull headlines, topics, and sources from the last 7 days to avoid repeats."""
@@ -153,6 +155,39 @@ IMPORTANT: Every story MUST have a real, working source URL. I need to pull up t
     return today, brief
 
 
+def generate_linkedin_post(today, brief):
+    """Take the full brief and reformat into a LinkedIn-ready post using Haiku (cheap)."""
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+    prompt = f"""Here is today's finance brief with 5 stories. Reformat it into a single LinkedIn post I can copy and paste directly.
+
+RULES:
+- Headline: "5 Gen Z money stories you might have missed this week ({today})" followed by a down arrow emoji
+- Number each story 1/ through 5/
+- Each story gets 2-3 sentences MAX: what happened with real numbers, then why it matters to the reader personally. Make them feel it.
+- Every fact and number must come directly from the brief below. Do NOT make up or change any statistics.
+- Blank line between each numbered story
+- After the 5 stories, end with exactly these two lines:
+
+📩 Follow my Substack to stay up to date → [link]
+📱 Download Budget Caddie on the App Store — proactive AI that budgets, tracks, and coaches you before you overspend
+
+- No other closing lines, no hashtags, no emojis in the stories themselves
+- Output ONLY the LinkedIn post. Nothing else. No "here's the post" or any preamble.
+
+THE BRIEF:
+{brief}"""
+
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1500,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    post = response.content[0].text.strip()
+    return post
+
+
 def post_issue(today, brief):
     """Post the brief as a GitHub Issue using gh CLI."""
     title = f"Today in Gen Z Finance — {today}"
@@ -171,7 +206,7 @@ def post_issue(today, brief):
 
 
 def send_email(today, brief):
-    """Send the brief via Resend SDK."""
+    """Send the full brief via Resend SDK."""
     resend_key = os.environ.get("RESEND_API_KEY")
     if not resend_key:
         print("No RESEND_API_KEY set, skipping email.")
@@ -187,9 +222,31 @@ def send_email(today, brief):
             "subject": f"Today in Gen Z Finance — {today}",
             "text": brief
         })
-        print(f"Email sent! ID: {r}")
+        print(f"Brief email sent! ID: {r}")
     except Exception as e:
-        print(f"Email failed: {e}")
+        print(f"Brief email failed: {e}")
+
+
+def send_linkedin_email(today, linkedin_post):
+    """Send the LinkedIn post as a separate email."""
+    resend_key = os.environ.get("RESEND_API_KEY")
+    if not resend_key:
+        print("No RESEND_API_KEY set, skipping LinkedIn email.")
+        return
+
+    import resend
+    resend.api_key = resend_key
+
+    try:
+        r = resend.Emails.send({
+            "from": "Today in Gen Z Finance <brief@budgetcaddie.com>",
+            "to": ["sharrank@budgetcaddie.com"],
+            "subject": f"LinkedIn Post — {today}",
+            "text": linkedin_post
+        })
+        print(f"LinkedIn email sent! ID: {r}")
+    except Exception as e:
+        print(f"LinkedIn email failed: {e}")
 
 
 if __name__ == "__main__":
@@ -210,4 +267,10 @@ if __name__ == "__main__":
     post_issue(today, brief)
     print("Posted as GitHub Issue!")
     send_email(today, brief)
+
+    # Generate and send LinkedIn post (Haiku — cheap)
+    print("Generating LinkedIn post...")
+    linkedin_post = generate_linkedin_post(today, brief)
+    print(f"LinkedIn post:\n{linkedin_post[:300]}...")
+    send_linkedin_email(today, linkedin_post)
     print("Done!")
