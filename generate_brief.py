@@ -221,11 +221,22 @@ def send_email(today, brief):
     resend.api_key = resend_key
 
     try:
+        import re
+        # Convert plain text to HTML: linkify URLs and preserve line breaks
+        html_brief = brief.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        html_brief = re.sub(
+            r'(https?://[^\s<>\)]+)',
+            r'<a href="\1">\1</a>',
+            html_brief
+        )
+        html_brief = html_brief.replace("\n", "<br>\n")
+        html_body = f'<div style="font-family: -apple-system, sans-serif; font-size: 15px; line-height: 1.6; color: #222;">{html_brief}</div>'
+
         r = resend.Emails.send({
             "from": "Today in Gen Z Finance <brief@budgetcaddie.com>",
             "to": ["sharrank@budgetcaddie.com"],
             "subject": f"Today in Gen Z Finance — {today}",
-            "text": brief
+            "html": html_body
         })
         print(f"Brief email sent! ID: {r}")
     except Exception as e:
