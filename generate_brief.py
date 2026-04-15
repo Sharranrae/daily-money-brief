@@ -133,10 +133,10 @@ IMPORTANT: Every story MUST have a real, working source URL. I need to pull up t
             )
             break
         except anthropic.APIStatusError as e:
-            if e.status_code != 529:
+            if e.status_code not in (429, 500, 502, 503, 529):
                 raise
             wait = 30 * (attempt + 1)
-            print(f"API overloaded (attempt {attempt + 1}/5). Retrying in {wait}s...")
+            print(f"API error {e.status_code} (attempt {attempt + 1}/5). Retrying in {wait}s...")
             time.sleep(wait)
     if response is None:
         raise Exception("Claude API overloaded after 5 retries. Try again later.")
