@@ -48,7 +48,10 @@ def generate_brief():
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     est = timezone(timedelta(hours=-4))
-    today = datetime.now(est).strftime("%B %d, %Y")
+    now_est = datetime.now(est)
+    today = now_est.strftime("%B %d, %Y")
+    yesterday = (now_est - timedelta(days=1)).strftime("%B %d, %Y")
+    cutoff = (now_est - timedelta(days=2)).strftime("%B %d, %Y")
 
     # Get recent stories to avoid repeats
     recent = get_recent_stories()
@@ -70,9 +73,18 @@ Here are the exact headlines, sources, and summaries from my past briefs:
 
 I need 5 COMPLETELY DIFFERENT TOPICS. Not the same story from a different outlet. Not a different angle on the same topic. Entirely new subjects I haven't covered."""
 
-    prompt = f"""Today is {today}. Find the top 5 money and finance news stories from today or this week that impact young people (ages 18-28).{avoid_block}
+    prompt = f"""Today is {today}. Find the top 5 money and finance news stories that impact young people (ages 18-28).
 
-These can be ANYTHING related to money:
+ABSOLUTE RECENCY RULE — READ THIS FIRST:
+- Every story MUST be from a news article PUBLISHED on {today} or {yesterday}.
+- DO NOT include any article published before {cutoff}. No exceptions.
+- "Recently" or "this week" is NOT good enough. The article's publish date must be {today} or {yesterday}.
+- When you search, include terms like "today", "{today}", "{yesterday}", or "breaking" to bias toward fresh news.
+- Before picking a story, CHECK the article's published date on the page. If it's older than {yesterday}, throw it out and search again.
+- Evergreen explainers, listicles, and "how to budget" guides are BANNED. Only timely news events.
+- If you cannot find 5 stories from {today} or {yesterday}, say so honestly at the end and give fewer stories. Do NOT pad with old articles.{avoid_block}
+
+These can be ANYTHING related to money (as long as the article is from {today} or {yesterday}):
 - Gas prices going up or down
 - Netflix, Spotify, or any subscription raising prices
 - Grocery/food costs changing
@@ -92,11 +104,12 @@ These can be ANYTHING related to money:
 For each story, give me:
 
 1. SOURCE LINK — The actual URL of the article you found this from. I need the real link so I can green screen it on TikTok.
-2. HEADLINE — one punchy line (TikTok hook)
-3. WHAT HAPPENED — 2-3 sentences. Explain it like you're telling a 6th grader. No jargon. Simple words.
-4. WHY GEN Z SHOULD CARE — 1-2 sentences connecting it to a young person's wallet. Make it feel personal.
-5. TIKTOK SCRIPT — The exact opening line I'd say to camera (2-3 sentences max). Make it sound natural, not scripted. Include the vibe in brackets: [funny] [shocking] [educational] [rant] [storytime]
-6. LINKEDIN POST — Write a short LinkedIn post version of this story (3-5 sentences). Professional but relatable. Something a young finance creator would post. Use the brand voice "Today in Gen Z Finance". Start each post with "Today in Gen Z Finance:" and end with a question to drive engagement.
+2. PUBLISHED — The exact publish date of the article in YYYY-MM-DD format. This MUST be {today} or {yesterday}. If you can't confirm the date, drop the story.
+3. HEADLINE — one punchy line (TikTok hook)
+4. WHAT HAPPENED — 2-3 sentences. Explain it like you're telling a 6th grader. No jargon. Simple words.
+5. WHY GEN Z SHOULD CARE — 1-2 sentences connecting it to a young person's wallet. Make it feel personal.
+6. TIKTOK SCRIPT — The exact opening line I'd say to camera (2-3 sentences max). Make it sound natural, not scripted. Include the vibe in brackets: [funny] [shocking] [educational] [rant] [storytime]
+7. LINKEDIN POST — Write a short LinkedIn post version of this story (3-5 sentences). Professional but relatable. Something a young finance creator would post. Use the brand voice "Today in Gen Z Finance". Start each post with "Today in Gen Z Finance:" and end with a question to drive engagement.
 
 Format the email like this:
 
@@ -106,6 +119,7 @@ Subject line style: "Today in Gen Z Finance — {today}"
 STORY 1
 ===========================
 SOURCE: [full article URL]
+PUBLISHED: YYYY-MM-DD
 HEADLINE: ...
 WHAT HAPPENED: ...
 WHY GEN Z SHOULD CARE: ...
@@ -119,7 +133,10 @@ BONUS
 ===========================
 One "did you know?" money fact I can use as a quick 15-second TikTok. Include the source link.
 
-IMPORTANT: Every story MUST have a real, working source URL. I need to pull up the article on screen."""
+IMPORTANT:
+- Every story MUST have a real, working source URL.
+- Every article MUST be published on {today} or {yesterday}. If the publish date is older, the story is INVALID and must be replaced.
+- I need to pull up the article on screen, so it must be a current news article — not a guide, not an explainer, not an old viral post."""
 
     # Use Claude with web search enabled (retry on overloaded errors)
     response = None
@@ -152,7 +169,34 @@ IMPORTANT: Every story MUST have a real, working source URL. I need to pull up t
     if not brief.strip():
         brief = "Brief generation returned empty. Check the workflow logs."
 
+    brief = flag_stale_dates(brief, now_est)
+
     return today, brief
+
+
+def flag_stale_dates(brief, now_est):
+    """Scan PUBLISHED dates in the brief; prepend a warning if any are >2 days old."""
+    import re
+    stale = []
+    for match in re.finditer(r"PUBLISHED:\s*(\d{4}-\d{2}-\d{2})", brief):
+        date_str = match.group(1)
+        try:
+            pub = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=now_est.tzinfo)
+            age_days = (now_est - pub).days
+            if age_days > 2:
+                stale.append(f"{date_str} ({age_days} days old)")
+        except ValueError:
+            stale.append(f"{date_str} (unparseable)")
+    if stale:
+        warning = (
+            "WARNING: Stale articles detected in this brief. "
+            "The following PUBLISHED dates are older than 2 days:\n"
+            + "\n".join(f"  - {s}" for s in stale)
+            + "\n\nYou should regenerate or replace these stories before posting.\n\n"
+            + "=" * 60 + "\n\n"
+        )
+        brief = warning + brief
+    return brief
 
 
 def generate_linkedin_post(today, brief):
