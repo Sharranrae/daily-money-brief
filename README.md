@@ -29,3 +29,11 @@ Go to Actions tab → "Daily Gen Z Money Brief" → "Run workflow" → click the
 Edit `.github/workflows/daily-brief.yml` line 4. The cron is in UTC:
 - `0 13 * * *` = 9 AM EST (during EDT/summer)
 - `0 14 * * *` = 9 AM EST (during EST/winter)
+
+## 💰 Bounty Contribution
+
+- **Task:** Today in Gen Z Finance — April 27, 2026
+- **Reward:** $852
+- **Source:** GitHub-Paid
+- **Date:** 2026-04-27
+
